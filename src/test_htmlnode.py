@@ -1,7 +1,9 @@
 import unittest
 
 from htmlnode import HTMLNode, LeafNode, ParentNode
-
+from split_nodes_delimiter import split_nodes_delimiter
+from textnode import TextNode, TextType, text_node_to_html_node
+from helper_functions import extract_markdown_images, extract_markdown_links
 
 class TestHTMLNode(unittest.TestCase):
     
@@ -64,6 +66,31 @@ class TestHTMLNode(unittest.TestCase):
             outer_div.to_html(),
             "<div class=\"tb1\"><span class=\"eft\" style=\"text-align:center;\"><b class=\"red\">grandchild</b>: In german a grandchild is called <a href=\"https://de.wikipedia.org/wiki/Enkel_(Begriffskl%C3%A4rung)\" title=\"wiki Enkel\" target=\"_blank\">Enkel</a><br></span>--------------------<br><span class=\"sot\">for more informations look in the link above<br></span></div>",
         )
+
+    def test_nr8_splitnodesdel(self):
+        text_node_old = [ TextNode("Sometimes we need **bold** words", TextType.TEXT) ]
+        new_node_list = [ TextNode("Sometimes we need ", TextType.TEXT),  TextNode("bold", TextType.BOLD),  TextNode(" words", TextType.TEXT) ]
+        self.assertEqual(split_nodes_delimiter(text_node_old, "**", TextType.BOLD), new_node_list)
+        
+    def test_nr9_splitnodesdel2(self):
+        text_node_old = [ TextNode("schickes Bild", TextType.IMAGE, "schickes_bild.jpg"), TextNode("Sometimes we need **bold** words", TextType.TEXT), TextNode("and sometimes we need _italic_ words", TextType.TEXT) ]
+        new_node_list = [
+                            TextNode("schickes Bild", TextType.IMAGE, "schickes_bild.jpg"),
+                            TextNode("Sometimes we need ", TextType.TEXT),
+                            TextNode("bold", TextType.BOLD),
+                            TextNode(" words", TextType.TEXT),
+                            TextNode("and sometimes we need ", TextType.TEXT),
+                            TextNode("italic", TextType.ITALIC),
+                            TextNode(" words", TextType.TEXT)
+                        ]
+        self.assertEqual(split_nodes_delimiter(split_nodes_delimiter(text_node_old, "**", TextType.BOLD), "_", TextType.ITALIC), new_node_list)
+        
+
+    def test_nr10_extract_markdown_links(self):
+        matches = extract_markdown_links(
+            "This is text with an [cool Link](https://www.madrabour.de) and another [Link to some page](https://www.zitzschewig.de) for testing."
+        )
+        self.assertListEqual([("cool Link", "https://www.madrabour.de"), ("Link to some page", "https://www.zitzschewig.de")], matches)
 
 
 
@@ -179,6 +206,111 @@ class TestHTMLNode(unittest.TestCase):
         self.assertEqual(
             node.to_html(),
             "<h2><b>Bold text</b>Normal text<i>italic text</i>Normal text</h2>",
+        )
+
+
+
+###
+
+    def test_delim_bold(self):
+        node = TextNode("This is text with a **bolded** word", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("bolded", TextType.BOLD),
+                TextNode(" word", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+
+    def test_delim_bold_double(self):
+        node = TextNode(
+            "This is text with a **bolded** word and **another**", TextType.TEXT
+        )
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("bolded", TextType.BOLD),
+                TextNode(" word and ", TextType.TEXT),
+                TextNode("another", TextType.BOLD),
+            ],
+            new_nodes,
+        )
+
+    def test_delim_bold_multiword(self):
+        node = TextNode(
+            "This is text with a **bolded word** and **another**", TextType.TEXT
+        )
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("bolded word", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("another", TextType.BOLD),
+            ],
+            new_nodes,
+        )
+
+    def test_delim_italic(self):
+        node = TextNode("This is text with an _italic_ word", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "_", TextType.ITALIC)
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" word", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+
+    def test_delim_bold_and_italic(self):
+        node = TextNode("**bold** and _italic_", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        new_nodes = split_nodes_delimiter(new_nodes, "_", TextType.ITALIC)
+        self.assertListEqual(
+            [
+                TextNode("bold", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+            ],
+            new_nodes,
+        )
+
+    def test_delim_code(self):
+        node = TextNode("This is text with a `code block` word", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "`", TextType.CODE)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("code block", TextType.CODE),
+                TextNode(" word", TextType.TEXT),
+            ],
+            new_nodes,
+        )
+
+###
+
+
+    def test_extract_markdown_images(self):
+        matches = extract_markdown_images(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        )
+        self.assertListEqual([("image", "https://i.imgur.com/zjjcJKZ.png")], matches)
+
+
+    def test_extract_markdown_links(self):
+        matches = extract_markdown_links(
+            "This is text with a [link](https://boot.dev) and [another link](https://wikipedia.org)"
+        )
+        self.assertListEqual(
+            [
+                ("link", "https://boot.dev"),
+                ("another link", "https://wikipedia.org"),
+            ],
+            matches,
         )
 
 
