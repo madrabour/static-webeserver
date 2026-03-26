@@ -1,1 +1,1 @@
-python3 src/main.py "/madrabour/"
+python3 src/main.py "/static-webeserver/"
