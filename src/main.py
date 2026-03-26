@@ -3,6 +3,7 @@ from htmlnode import HTMLNode, LeafNode, ParentNode
 import os
 from shutil import copy, rmtree
 from blocks import markdown_to_html_node, extract_title
+import sys
 
 """
 
@@ -40,8 +41,8 @@ def copy_dir(source, target):
             
 
 
-def generate_page(from_path, template_path, dest_path):
-    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+def generate_page(basepath, from_path, template_path, dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path} for basepath {basepath}")
     source_file = open(from_path)
     md = source_file.read(100000)
     template_file = open(template_path)
@@ -53,7 +54,12 @@ def generate_page(from_path, template_path, dest_path):
     #print(f"html: {html}")
     title = extract_title(md)
     
-    replacers = [("{{ Title }}",title), ("{{ Content }}",html)]
+    replacers = [
+                    ("{{ Title }}",title),
+                    ("{{ Content }}",html),
+                    ("href=\"/", f"href=\"{basepath}"),
+                    ("src=\"/", f"src=\"{basepath}"),
+                ]
     html_output = templ
     for replacer in replacers:
         #print (f"0: {replacer[0]}, 1: {replacer[1]}")
@@ -65,38 +71,31 @@ def generate_page(from_path, template_path, dest_path):
     target_file = open(dest_path, "w")
     target_file.write(html_output)   
 
-def generate_pages_recursive(source = "./content"):
+def generate_pages_recursive(basepath, source = "./content"):
     #for_generator_soll = ["index", "blog/glorfindel/index", "blog/tom/index", "blog/majesty/index", "contact/index"]
     dir_content = os.listdir(source)
     for pi in dir_content:
         pi_path = f"{source}/{pi}"
         is_md = pi_path[-3:] == ".md"
         if os.path.isdir(pi_path):
-            generate_pages_recursive(pi_path)
+            generate_pages_recursive(basepath, pi_path)
         elif os.path.isfile(f"{source}/{pi}") and is_md:
             inner_path = pi_path.replace("./content/", "").replace(".md","")
             gi_s = "./content/" + inner_path + ".md"
-            gi_t = "./public/" + inner_path + ".html"
-            generate_page(gi_s, "./template.html", gi_t)
+            gi_t = "./docs/" + inner_path + ".html"
+            generate_page(basepath, gi_s, "./template.html", gi_t)
     
 
 
 def main():
-    """
-    node = TextNode("This is some anchor text", TextType.LINK, "https://www.boot.dev")
-    print(node)
+    try:
+        basepath = sys.argv[1]
+    except IndexError:
+        print ("No basepath submitted, taking '/' ")
+        basepath = "/"
     
-    htmlTest = HTMLNode("b", "Ein Fetter TEXT", [], {"class": "rot", "style": "font-weight:bold"})
-    print (f"ht: {htmlTest}")
-    """
-    
-    test_md = """
-# Überschrift1
-
-Some other text
-"""
-    copy_dir("./static", "./public")
-    generate_pages_recursive()
+    copy_dir("./static", "./docs")
+    generate_pages_recursive(basepath)
     
 
 main()
