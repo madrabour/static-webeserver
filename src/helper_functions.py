@@ -8,4 +8,3 @@ def extract_markdown_links(text):
     link_filter = r"(?<!!)\[(.*?)\]\((.*?)\)"
     return re.findall(link_filter, text)
 
-

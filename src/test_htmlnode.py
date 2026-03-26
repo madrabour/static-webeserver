@@ -4,6 +4,7 @@ from htmlnode import HTMLNode, LeafNode, ParentNode
 from split_nodes import split_nodes_delimiter, split_nodes_link, split_nodes_image, text_to_textnodes
 from textnode import TextNode, TextType, text_node_to_html_node
 from helper_functions import extract_markdown_images, extract_markdown_links
+from blocks import BlockType, markdown_to_blocks, block_to_block_type, markdown_to_html_node, extract_title
 
 class TestHTMLNode(unittest.TestCase):
     
@@ -139,8 +140,220 @@ class TestHTMLNode(unittest.TestCase):
         )
        
 
+    def test_nr13_markdown_to_blocks(self):
+        md = """
+# Überschrif 1
+
+## Überschrift1.1
+
+This is **bolded** paragraph
+
+## Überschrift1.2
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+## Überschrift1.3
+
+- This is a list
+- with items
+
+# Überschrif 2
+
+## Überschrift2.1
+
+[madrabour.de](https://www.madrabour.de) is my own page.
+This is picture from the site: ![a cat named Lola(!)](http://www.madrabour.de/person/bilder/lola02_titel.jpg)
+
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "# Überschrif 1",
+                "## Überschrift1.1",
+                "This is **bolded** paragraph",
+                "## Überschrift1.2",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "## Überschrift1.3",
+                "- This is a list\n- with items",
+                "# Überschrif 2",
+                "## Überschrift2.1",
+                "[madrabour.de](https://www.madrabour.de) is my own page.\nThis is picture from the site: ![a cat named Lola(!)](http://www.madrabour.de/person/bilder/lola02_titel.jpg)"
+            ],
+        )
+
+    def test_nr14_markdown_to_blocktyps(self):
+        md = """
+# Überschrif 1
+
+## Überschrift1.1
+
+This is **bolded** paragraph
+
+## Überschrift1.2
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+## Überschrift1.3
+
+- This is a list
+- with items
+
+# Überschrif 2
+
+## Überschrift2.1
+
+1. [madrabour.de](https://www.madrabour.de) is my own page.
+2. This is picture from the site: ![a cat named Lola(!)](http://www.madrabour.de/person/bilder/lola02_titel.jpg)
+
+## Überschrift2.2
+
+```
+print("hello world!")
+print("hello world!")
+print("hello world!")
+```
+
+## Überschrift2.3
+
+> Es war einmal...
+> Es begab sich einst...
+> Dingdong palim palim!
+
+"""
+        blocks = markdown_to_blocks(md)
+        block_typs = []
+        i = 0
+        for block in blocks:
+            i += 1
+            #print(f"\n{i}.: ~{block}~")
+            bt = block_to_block_type(block)
+            block_typs.append(bt)
+            #print(f"btv {bt.value}")
+        self.assertEqual(
+            block_typs,
+            [ 
+                BlockType.HEADING,
+                BlockType.HEADING,
+                BlockType.PARAGRAPH,
+                BlockType.HEADING,
+                BlockType.PARAGRAPH,
+                BlockType.HEADING,
+                BlockType.ULIST,
+                BlockType.HEADING,
+                BlockType.HEADING,
+                BlockType.OLIST,
+                BlockType.HEADING,
+                BlockType.CODE,
+                BlockType.HEADING,                
+                BlockType.QUOTE,
+            ],
+        )
+
+    def test_nr15_markdown_to_html_ueber(self):
+        md = """
+# Überschrif 1
+
+### Ü3
+
+###### Ü6
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>Überschrif 1</h1><h3>Ü3</h3><h6>Ü6</h6></div>",
+        )
+        
+    def test_nr16_markdown_to_html_uecoquo(self):
+        md = """
+# Überschrif 1
+
+```
+<xml>Palim</xml>
+print("palim")
+```
+
+###### Ü6
+
+> Quote Z1
+> Quote Z2
+> Quote Z3
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>Überschrif 1</h1><pre><code><xml>Palim</xml>\nprint(\"palim\")\n</code></pre><h6>Ü6</h6><blockquote>Quote Z1<br>Quote Z2<br>Quote Z3<br></blockquote></div>",
+        )
+        
+    def test_nr17_markdown_to_html_ulioli(self):
+        md = """
+# Überschrif 1
+
+```
+<xml>Palim</xml>
+print("palim")
+```
+
+###### Ü6
+
+- Listenpunkt 1
+
+1. Menüpunkt 1
+2. Menüpunkt 2
+4. Menüpunkt 3
+
+- Listenpunkt 1
+- Pistenlunkt 2
+- Punktenlist 3
+
+Hier steht noch ein
+abschließender Text
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        #print (f"\nhtml:\n{html}")
+        self.assertEqual(
+            html,
+            "<div><h1>Überschrif 1</h1><pre><code><xml>Palim</xml>\nprint(\"palim\")\n</code></pre><h6>Ü6</h6><ul><li>Listenpunkt 1</li></ul><ol><li>Menüpunkt 1</li><li>Menüpunkt 2</li><li>Menüpunkt 3</li></ol><ul><li>Listenpunkt 1</li><li>Pistenlunkt 2</li><li>Punktenlist 3</li></ul><p>Hier steht noch ein abschließender Text</p></div>",
+        )
+        
+    def test_nr18_markdown_to_title(self):
+        md = """
+# Überschrif für Palim Dingeldong
+
+```
+<xml>Palim</xml>
+print("palim")
+```
+
+###### Ü6
+
+- Listenpunkt 1
+
+1. Menüpunkt 1
+2. Menüpunkt 2
+4. Menüpunkt 3
+
+- Listenpunkt 1
+- Pistenlunkt 2
+- Punktenlist 3
+
+Hier steht noch ein
+abschließender Text
+"""
+        title = extract_title(md)
+        #print (f"\nhtml:\n{html}")
+        self.assertEqual(
+            title,
+            "Überschrif für Palim Dingeldong",
+        )
 
 
+       
 
 
 #################################################
@@ -430,6 +643,59 @@ class TestHTMLNode(unittest.TestCase):
             new_nodes,
         )
 
+
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_codeblock(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
 
 
 

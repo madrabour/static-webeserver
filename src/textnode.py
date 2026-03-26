@@ -7,7 +7,7 @@ from htmlnode import HTMLNode, LeafNode, ParentNode
 def text_node_to_html_node(text_node):
     match text_node.text_type.value:
         case "text":
-            return LeafNode(None, text_node.text)
+            return LeafNode(None, text_node.text.replace("\n", " "))
          
         case "bold":
             return LeafNode("b", text_node.text)               
