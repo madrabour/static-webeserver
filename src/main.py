@@ -57,8 +57,8 @@ def generate_page(basepath, from_path, template_path, dest_path):
     replacers = [
                     ("{{ Title }}",title),
                     ("{{ Content }}",html),
-                    ("href=\"/", f"href=\"{basepath}"),
-                    ("src=\"/", f"src=\"{basepath}"),
+                    ("href=\"/", f"href=\"{basepath}/"),
+                    ("src=\"/", f"src=\"{basepath}/"),
                 ]
     html_output = templ
     for replacer in replacers:
